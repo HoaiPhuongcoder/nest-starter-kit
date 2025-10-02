@@ -1,0 +1,9 @@
+# Các file và thư mục bị bỏ qua
+.git
+.github
+node_modules
+dist
+.env
+Dockerfile
+.dockerignore
+README.md
