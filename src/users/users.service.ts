@@ -1,11 +1,11 @@
+import { PrismaService } from '@/shared/services/prisma.service';
+import { CreateUser } from '@/users/dto/create-user.dto';
+import { LoginBody } from '@/users/dto/login.dto';
 import {
   Injectable,
   InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateUser } from 'src/users/dto/create-user.dto';
-import { LoginBody } from 'src/users/dto/login.dto';
 
 @Injectable()
 export class UsersService {
@@ -35,14 +35,12 @@ export class UsersService {
         },
       });
     } catch (error) {
-      // 2. Nếu query thất bại (VD: mất kết nối DB), bắt lỗi ở đây
-      console.error(error); // Ghi lại log lỗi để debug
+      console.error(error);
       throw new InternalServerErrorException(
         'Lỗi hệ thống, không thể truy vấn dữ liệu.',
       );
     }
 
-    // 3. Nếu không tìm thấy user hoặc mật khẩu sai, trả về lỗi 401
     if (!user) {
       throw new UnauthorizedException(
         'Tên đăng nhập hoặc mật khẩu không chính xác.',
