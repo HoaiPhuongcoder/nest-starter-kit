@@ -1,11 +1,30 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ValidationError } from 'class-validator';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      exceptionFactory: (validationErrors: ValidationError[] = []) => {
+        const formattedErrors = validationErrors.map((error) => ({
+          field: error.property,
+          message: Object.values(
+            error.constraints as Record<string, string>,
+          ).join(),
+        }));
+        return new BadRequestException({
+          statusCode: 400,
+          messages: formattedErrors,
+          error: 'Bad Request',
+        });
+      },
+    }),
+  );
   app.enableShutdownHooks();
   const config = new DocumentBuilder()
     .setTitle('Social Media')
