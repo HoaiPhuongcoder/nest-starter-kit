@@ -3,6 +3,7 @@ import {
   RegisterUserDto,
   RegisterUserResponseDto,
 } from '@/auth/dtos/register-user.dto';
+import { ResponseMessage } from '@/utils/decorator/response-message.decorator';
 import {
   Body,
   ClassSerializerInterceptor,
@@ -15,6 +16,8 @@ import {
 @UseInterceptors(ClassSerializerInterceptor)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @ResponseMessage('User created successfully')
   @Post('register')
   async register(@Body() registerUserDto: RegisterUserDto) {
     const result = await this.authService.register(registerUserDto);
