@@ -1,4 +1,4 @@
-import { CreatePostDto } from '@/posts/dto/create-post.dto';
+import { CreatePostDto } from '@/posts/dtos/create-post.dto';
 import { PrismaService } from '@/shared/services/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';

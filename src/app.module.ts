@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { ClassSerializerInterceptor, Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PostsModule } from './posts/posts.module';
@@ -8,7 +8,7 @@ import { ConfigModule } from '@nestjs/config';
 import { validateEnvironment } from '@/config/validation-env.schema';
 import { AuthModule } from './auth/auth.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
-import { TransformInterceptor } from '@/shared/interceptors/tranform.interceptor';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
@@ -20,11 +20,12 @@ import { TransformInterceptor } from '@/shared/interceptors/tranform.interceptor
     UsersModule,
     SharedModule,
     AuthModule,
+    RedisModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
-    { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: ClassSerializerInterceptor },
   ],
 })
 export class AppModule {}

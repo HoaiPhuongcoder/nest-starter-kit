@@ -39,9 +39,4 @@ export class RegisterUserResponseDto {
   constructor(partial: Partial<RegisterUserResponseDto>) {
     Object.assign(this, partial);
   }
-
-  @Expose()
-  get fullName() {
-    return this.name + 'Bố Mày';
-  }
 }

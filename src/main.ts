@@ -1,11 +1,13 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationError } from 'class-validator';
+import { TransformInterceptor } from '@/shared/interceptors/tranform.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const reflector = app.get(Reflector);
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -25,6 +27,7 @@ async function bootstrap() {
       },
     }),
   );
+  app.useGlobalInterceptors(new TransformInterceptor(reflector));
   app.enableShutdownHooks();
   const config = new DocumentBuilder()
     .setTitle('Social Media')

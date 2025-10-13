@@ -1,33 +1,50 @@
+import { LoginDto } from '@/auth/dtos/login.dto';
 import { RegisterUserDto } from '@/auth/dtos/register-user.dto';
 import { HashingService } from '@/shared/services/hashing.service';
-import { PrismaService } from '@/shared/services/prisma.service';
-import { ConflictException, Injectable } from '@nestjs/common';
+import { JwtTokenService } from '@/shared/services/jwt-token.service';
+import { UsersService } from '@/users/users.service';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly prismaService: PrismaService,
+    private readonly usersService: UsersService,
     private readonly hashingService: HashingService,
+    private readonly jwtTokenService: JwtTokenService,
   ) {}
   async register(registerUserDto: RegisterUserDto) {
     const { name, email, password } = registerUserDto;
 
-    const user = await this.prismaService.user.findUnique({
-      where: {
-        email: email,
-      },
-    });
-    if (user) {
-      throw new ConflictException('Email này đã tồn tại');
-    }
-    const hashedPassword = await this.hashingService.hash(password);
+    const passwordHash = await this.hashingService.hash(password);
 
-    return await this.prismaService.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-      },
+    const user = await this.usersService.createUser({
+      email,
+      name,
+      passwordHash,
     });
+    return user;
+  }
+
+  async login(loginDto: LoginDto) {
+    const { email, password } = loginDto;
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      throw new UnauthorizedException('Wrong email or password');
+    }
+    const isPasswordMatch = await this.hashingService.compare(
+      password,
+      user.password,
+    );
+
+    if (!isPasswordMatch) {
+      throw new UnauthorizedException('Wrong email or password');
+    }
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtTokenService.signAccessToken(user.id),
+      this.jwtTokenService.signRefreshToken(user.id),
+    ]);
+
+    return { accessToken, refreshToken };
   }
 }
