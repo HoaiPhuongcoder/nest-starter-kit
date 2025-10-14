@@ -20,7 +20,7 @@ export interface Response<T> {
 export class TransformInterceptor<T>
   implements NestInterceptor<T, Response<T>>
 {
-  constructor(private reflector: Reflector) {}
+  constructor(private readonly reflector: Reflector) {}
   intercept(
     context: ExecutionContext,
     next: CallHandler,

@@ -6,8 +6,8 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class PostsService {
   constructor(
-    private prismaService: PrismaService,
-    private configService: ConfigService,
+    private readonly prismaService: PrismaService,
+    private readonly configService: ConfigService,
   ) {}
   async findAll() {
     console.log(this.configService.get<string>('DATABASE_URL'));
