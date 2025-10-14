@@ -40,4 +40,10 @@ export class JwtTokenService {
       secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
     });
   }
+
+  async verifyRefreshToken(token: string): Promise<TokenPayload> {
+    return this.jwtService.verifyAsync(token, {
+      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+    });
+  }
 }

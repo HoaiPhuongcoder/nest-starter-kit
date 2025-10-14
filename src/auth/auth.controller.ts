@@ -5,7 +5,8 @@ import {
   RegisterUserResponseDto,
 } from '@/auth/dtos/register-user.dto';
 import { ResponseMessage } from '@/utils/decorator/response-message.decorator';
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
 export class AuthController {
@@ -24,5 +25,13 @@ export class AuthController {
     const { accessToken, refreshToken } =
       await this.authService.login(loginDto);
     return new LoginResponseDto({ accessToken, refreshToken });
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('me')
+  me(@Req() req: { user: Record<string, string> }) {
+    return {
+      userId: req.user.userId,
+    };
   }
 }

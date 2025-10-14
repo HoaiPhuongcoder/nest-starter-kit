@@ -4,7 +4,7 @@ import { Body, Controller, Get, Post } from '@nestjs/common';
 
 @Controller('posts')
 export class PostsController {
-  constructor(private postsService: PostsService) {}
+  constructor(private readonly postsService: PostsService) {}
   @Get()
   async findAll() {
     return await this.postsService.findAll();
