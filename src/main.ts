@@ -4,9 +4,15 @@ import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationError } from 'class-validator';
 import { TransformInterceptor } from '@/shared/interceptors/transform.interceptor';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.enableCors({
+    origin: ['http://localhost:3000'],
+    credential: true,
+  });
+  app.use(cookieParser());
   const reflector = app.get(Reflector);
   app.useGlobalPipes(
     new ValidationPipe({

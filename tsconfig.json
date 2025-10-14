@@ -24,5 +24,6 @@
     "paths": {
       "@/*": ["./src/*"] // <-- Thêm tiền tố vào đây
     }
-  }
+  },
+  "include": ["src", "src/types/**/*.d.ts"]
 }

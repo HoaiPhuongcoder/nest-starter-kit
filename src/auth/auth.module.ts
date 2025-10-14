@@ -4,10 +4,11 @@ import { AuthService } from './auth.service';
 import { UsersModule } from '@/users/users.module';
 import { JwtAccessStrategy } from './strategies/jwt-access.strategy';
 import { PassportModule } from '@nestjs/passport';
+import { JwtRefreshStrategy } from '@/auth/strategies/jwt-refresh.strategy';
 
 @Module({
   imports: [UsersModule, PassportModule],
   controllers: [AuthController],
-  providers: [AuthService, JwtAccessStrategy],
+  providers: [AuthService, JwtAccessStrategy, JwtRefreshStrategy],
 })
 export class AuthModule {}
