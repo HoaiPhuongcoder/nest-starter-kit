@@ -25,6 +25,8 @@ export const envSchema = z.object({
   COOKIE_SAMESITE: z.enum(['lax', 'strict', 'none']),
   ACCESS_TOKEN_MAX_AGE_MS: IntMs,
   REFRESH_TOKEN_MAX_AGE_MS: IntMs,
+  JWT_ISSUER: z.url(),
+  JWT_AUDIENCE: z.string().min(1),
 });
 
 export type Env = z.infer<typeof envSchema>;

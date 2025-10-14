@@ -18,6 +18,8 @@ export class JwtTokenService {
         expiresIn: this.configService.get('JWT_ACCESS_EXPIRES'),
         algorithm: 'HS256',
         jwtid: crypto.randomUUID(),
+        issuer: this.configService.get<string>('JWT_ISSUER'),
+        audience: this.configService.get<string>('JWT_AUDIENCE'),
       },
     );
   }
@@ -31,6 +33,8 @@ export class JwtTokenService {
         expiresIn: this.configService.get('JWT_REFRESH_EXPIRES'),
         algorithm: 'HS256',
         jwtid: crypto.randomUUID(),
+        issuer: this.configService.get<string>('JWT_ISSUER'),
+        audience: this.configService.get<string>('JWT_AUDIENCE'),
       },
     );
   }
@@ -38,12 +42,16 @@ export class JwtTokenService {
   async verifyAccessToken(token: string): Promise<TokenPayload> {
     return this.jwtService.verifyAsync(token, {
       secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
+      issuer: this.configService.get('JWT_ISSUER'),
+      audience: this.configService.get('JWT_AUDIENCE'),
     });
   }
 
   async verifyRefreshToken(token: string): Promise<TokenPayload> {
     return this.jwtService.verifyAsync(token, {
       secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      issuer: this.configService.get('JWT_ISSUER'),
+      audience: this.configService.get('JWT_AUDIENCE'),
     });
   }
 }

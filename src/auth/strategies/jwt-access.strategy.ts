@@ -12,6 +12,10 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt') {
         makeCookieExtractor('accessToken'),
       ]),
       secretOrKey: configService.getOrThrow('JWT_ACCESS_SECRET'),
+      issuer: configService.get<string>('JWT_ISSUER'),
+      audience: configService.get<string>('JWT_AUDIENCE'),
+      ignoreExpiration: false,
+      jsonWebTokenOptions: { clockTolerance: 5 },
     });
   }
   validate(payload: TokenPayload): { userId: string } {
