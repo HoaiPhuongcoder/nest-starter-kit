@@ -3,4 +3,5 @@ export interface TokenPayload {
   exp: number;
   iat: number;
   jit: string;
+  deviceId: string;
 }

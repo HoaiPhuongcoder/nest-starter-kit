@@ -1,5 +1,6 @@
+import { RedisService } from '@/redis/redis.service';
 import { TokenPayload } from '@/shared/types/jwt.type';
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
@@ -9,7 +10,10 @@ export class JwtRefreshStrategy extends PassportStrategy(
   Strategy,
   'jwt-refresh',
 ) {
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKey: configService.getOrThrow('JWT_REFRESH_SECRET'),
@@ -20,7 +24,31 @@ export class JwtRefreshStrategy extends PassportStrategy(
       passReqToCallback: true,
     });
   }
-  validate(payload: TokenPayload): { userId: string } {
-    return { userId: payload.sub };
+  async validate(payload: TokenPayload): Promise<{
+    userId: string;
+    deviceId: string;
+    jit: string;
+  }> {
+    const { sub: userId, jit, deviceId } = payload;
+    const currentKey = `session:${deviceId}:current`;
+    const currentJti = await this.redisService.get(currentKey);
+    if (!currentJti) {
+      throw new UnauthorizedException('Session Not Found');
+    }
+    if (currentJti !== jit) {
+      throw new UnauthorizedException(
+        'Refresh token is not current (possible reuse)',
+      );
+    }
+    const jitKey = `session:${deviceId}:jti:${jit}`;
+    const meta = await this.redisService.hgetall(jitKey);
+    if (!meta || Object.keys(meta).length == 0) {
+      throw new UnauthorizedException('Refresh token metadata missing');
+    }
+
+    if (meta['rotated'] === 'true') {
+      throw new UnauthorizedException('Refresh token already rotated');
+    }
+    return { userId, deviceId, jit };
   }
 }
