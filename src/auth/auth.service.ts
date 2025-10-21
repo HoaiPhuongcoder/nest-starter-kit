@@ -1,5 +1,6 @@
 import { LoginDto } from '@/auth/dtos/login.dto';
 import { RegisterUserDto } from '@/auth/dtos/register-user.dto';
+import { TokenStoreService } from '@/auth/services/token-store.service';
 import { HashingService } from '@/shared/services/hashing.service';
 import { JwtTokenService } from '@/shared/services/jwt-token.service';
 import { UsersService } from '@/users/users.service';
@@ -12,6 +13,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly hashingService: HashingService,
     private readonly jwtTokenService: JwtTokenService,
+    private readonly tokenStoreService: TokenStoreService,
   ) {}
 
   /**

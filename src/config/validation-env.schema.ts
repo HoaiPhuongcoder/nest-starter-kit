@@ -15,11 +15,12 @@ const IntMs = z
 
 export const envSchema = z.object({
   DATABASE_URL: z.url(),
+  REDIS_HOST: z.string(),
+  REDIS_PORT: z.string(),
   JWT_ACCESS_SECRET: z.string(),
   JWT_ACCESS_EXPIRES: z.string(),
   JWT_REFRESH_SECRET: z.string(),
   JWT_REFRESH_EXPIRES: z.string(),
-  REDIS_URL: z.string(),
   COOKIE_DOMAIN: z.string(),
   COOKIE_SECURE: Bool.default(false),
   COOKIE_SAMESITE: z.enum(['lax', 'strict', 'none']),

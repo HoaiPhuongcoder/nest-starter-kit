@@ -1,7 +1,7 @@
 import { TokenPayload } from '@/shared/types/jwt.type';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 
 @Injectable()
 export class JwtTokenService {
@@ -9,32 +9,41 @@ export class JwtTokenService {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
-  async signAccessToken(userId: string) {
+  async signAccessToken(
+    userId: string,
+    options?: Pick<JwtSignOptions, 'expiresIn' | 'jwtid'>,
+  ) {
     return this.jwtService.signAsync(
-      {},
       {
-        subject: userId,
+        sub: userId,
+      },
+      {
         secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
         expiresIn: this.configService.get('JWT_ACCESS_EXPIRES'),
         algorithm: 'HS256',
-        jwtid: crypto.randomUUID(),
         issuer: this.configService.get<string>('JWT_ISSUER'),
         audience: this.configService.get<string>('JWT_AUDIENCE'),
+        ...options,
       },
     );
   }
 
-  async signRefreshToken(userId: string) {
+  async signRefreshToken(
+    userId: string,
+    options?: Pick<JwtSignOptions, 'expiresIn' | 'jwtid'>,
+  ) {
     return this.jwtService.signAsync(
-      {},
       {
-        subject: userId,
+        sub: userId,
+      },
+      {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
         expiresIn: this.configService.get('JWT_REFRESH_EXPIRES'),
         algorithm: 'HS256',
         jwtid: crypto.randomUUID(),
         issuer: this.configService.get<string>('JWT_ISSUER'),
         audience: this.configService.get<string>('JWT_AUDIENCE'),
+        ...options,
       },
     );
   }

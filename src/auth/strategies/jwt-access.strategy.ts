@@ -17,6 +17,7 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt') {
       audience: configService.get<string>('JWT_AUDIENCE'),
       ignoreExpiration: false,
       jsonWebTokenOptions: { clockTolerance: 5 },
+      algorithms: ['HS256'],
     });
   }
 

@@ -13,6 +13,11 @@ export class JwtRefreshStrategy extends PassportStrategy(
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKey: configService.getOrThrow('JWT_REFRESH_SECRET'),
+      issuer: configService.get<string>('JWT_ISSUER'),
+      audience: configService.get<string>('JWT_AUDIENCE'),
+      ignoreExpiration: false,
+      algorithms: ['HS256'],
+      passReqToCallback: true,
     });
   }
   validate(payload: TokenPayload): { userId: string } {
