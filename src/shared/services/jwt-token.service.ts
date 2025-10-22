@@ -10,42 +10,32 @@ export class JwtTokenService {
     private readonly configService: ConfigService,
   ) {}
   async signAccessToken(
-    userId: string,
+    payload: { sub: string; deviceId: string },
     options?: Pick<JwtSignOptions, 'expiresIn' | 'jwtid'>,
   ) {
-    return this.jwtService.signAsync(
-      {
-        sub: userId,
-      },
-      {
-        secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
-        expiresIn: this.configService.get('JWT_ACCESS_EXPIRES'),
-        algorithm: 'HS256',
-        issuer: this.configService.get<string>('JWT_ISSUER'),
-        audience: this.configService.get<string>('JWT_AUDIENCE'),
-        ...options,
-      },
-    );
+    return this.jwtService.signAsync(payload, {
+      secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
+      expiresIn: this.configService.get('JWT_ACCESS_EXPIRES'),
+      algorithm: 'HS256',
+      jwtid: crypto.randomUUID(),
+      issuer: this.configService.get<string>('JWT_ISSUER'),
+      audience: this.configService.get<string>('JWT_AUDIENCE'),
+      ...options,
+    });
   }
 
   async signRefreshToken(
-    userId: string,
+    payload: { sub: string; deviceId: string; jti: string },
     options?: Pick<JwtSignOptions, 'expiresIn' | 'jwtid'>,
   ) {
-    return this.jwtService.signAsync(
-      {
-        sub: userId,
-      },
-      {
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-        expiresIn: this.configService.get('JWT_REFRESH_EXPIRES'),
-        algorithm: 'HS256',
-        jwtid: crypto.randomUUID(),
-        issuer: this.configService.get<string>('JWT_ISSUER'),
-        audience: this.configService.get<string>('JWT_AUDIENCE'),
-        ...options,
-      },
-    );
+    return this.jwtService.signAsync(payload, {
+      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      expiresIn: this.configService.get('JWT_REFRESH_EXPIRES'),
+      algorithm: 'HS256',
+      issuer: this.configService.get<string>('JWT_ISSUER'),
+      audience: this.configService.get<string>('JWT_AUDIENCE'),
+      ...options,
+    });
   }
 
   async verifyAccessToken(token: string): Promise<TokenPayload> {

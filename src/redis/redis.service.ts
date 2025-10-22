@@ -5,6 +5,10 @@ import Redis from 'ioredis';
 export class RedisService {
   constructor(@Inject('REDIS') private readonly redis: Redis) {}
 
+  getClient(): Redis {
+    return this.redis;
+  }
+
   async set(key: string, value: string, ttl?: number) {
     return ttl
       ? this.redis.set(key, value, 'EX', ttl)
@@ -23,7 +27,7 @@ export class RedisService {
     return res === 1;
   }
 
-  async hset(key: string, object: Record<string, string | number | boolean>) {
+  async hSet(key: string, object: Record<string, string | number | boolean>) {
     const flat = Object.entries(object).flatMap(([key, value]) => [
       key,
       String(value),
@@ -31,7 +35,7 @@ export class RedisService {
     return await this.redis.hset(key, ...flat);
   }
 
-  async hgetall<T = Record<string, string>>(key: string): Promise<T> {
+  async hGetAll<T = Record<string, string>>(key: string): Promise<T> {
     return (await this.redis.hgetall(key)) as T;
   }
 

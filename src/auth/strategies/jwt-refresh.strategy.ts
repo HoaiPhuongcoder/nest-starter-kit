@@ -41,7 +41,7 @@ export class JwtRefreshStrategy extends PassportStrategy(
       );
     }
     const jitKey = `session:${deviceId}:jti:${jit}`;
-    const meta = await this.redisService.hgetall(jitKey);
+    const meta = await this.redisService.hGetAll(jitKey);
     if (!meta || Object.keys(meta).length == 0) {
       throw new UnauthorizedException('Refresh token metadata missing');
     }
