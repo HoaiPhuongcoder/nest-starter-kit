@@ -23,7 +23,6 @@ model User {
   createAt  DateTime    @default(now())
   updateAt  DateTime    @updatedAt()
   posts     Post[]
-  refreshTokens RefreshToken[]
 }
 
 model Post {
@@ -34,12 +33,4 @@ model Post {
   updatedAt   DateTime  @updatedAt
   authorId    String 
   author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade,onUpdate:NoAction)
-}
-
-model RefreshToken {
-  token       String    @unique
-  expiresAt   DateTime 
-  createAt    DateTime  @default(now())
-  userId      String    
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }

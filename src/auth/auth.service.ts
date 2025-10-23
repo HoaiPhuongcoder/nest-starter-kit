@@ -74,8 +74,6 @@ export class AuthService {
       }),
     ]);
 
-    console.log(accessToken);
-
     await this.sessionService.createSession(rtJti, atJti, user.id, deviceId);
     return { accessToken, refreshToken };
   }

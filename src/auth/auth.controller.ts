@@ -4,6 +4,7 @@ import {
   RegisterUserDto,
   RegisterUserResponseDto,
 } from '@/auth/dtos/register-user.dto';
+import { CookieAuthService } from '@/auth/services/cookie-auth.service';
 import { ResponseMessage } from '@/utils/decorator/response-message.decorator';
 import {
   Body,
@@ -19,7 +20,10 @@ import { type Response, type Request } from 'express';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly cookieAuthService: CookieAuthService,
+  ) {}
 
   @ResponseMessage('User created successfully')
   @Post('register')
@@ -36,15 +40,7 @@ export class AuthController {
   ) {
     const { accessToken, refreshToken } =
       await this.authService.login(loginDto);
-
-    res.cookie('accessToken', accessToken, {
-      path: '/',
-      domain: undefined,
-      sameSite: 'lax',
-      maxAge: 900000,
-      httpOnly: true,
-    });
-
+    this.cookieAuthService.setAuthCookies(res, accessToken, refreshToken);
     return new LoginResponseDto({ accessToken, refreshToken });
   }
 
@@ -52,7 +48,7 @@ export class AuthController {
   @Get('me')
   me(@Req() req: Request) {
     return {
-      userId: req.user?.userId,
+      userId: req.user,
     };
   }
 }

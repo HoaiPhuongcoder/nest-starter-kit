@@ -21,7 +21,15 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  validate(payload: JwtTokenPayload): { userId: string; deviceId: string } {
-    return { userId: payload.sub, deviceId: payload.deviceId };
+  validate(payload: JwtTokenPayload): {
+    userId: string;
+    deviceId: string;
+    jti: string;
+  } {
+    return {
+      userId: payload.sub,
+      deviceId: payload.deviceId,
+      jti: payload.jti,
+    };
   }
 }
