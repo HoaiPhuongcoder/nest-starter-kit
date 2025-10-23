@@ -1,16 +1,10 @@
 import { LoginDto } from '@/auth/dtos/login.dto';
 import { RegisterUserDto } from '@/auth/dtos/register-user.dto';
-
-import { RedisService } from '@/redis/redis.service';
+import { SessionService } from '@/auth/services/session.service';
 import { HashingService } from '@/shared/services/hashing.service';
-import { JwtTokenService } from '@/shared/services/jwt-token.service';
+import { JwtTokenService } from '@/auth/services/jwt-token.service';
 import { UsersService } from '@/users/users.service';
-import {
-  Injectable,
-  InternalServerErrorException,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { User } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 
@@ -20,8 +14,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly hashingService: HashingService,
     private readonly jwtTokenService: JwtTokenService,
-    private readonly configService: ConfigService,
-    private readonly redisService: RedisService,
+    private readonly sessionService: SessionService,
   ) {}
 
   /**
@@ -54,7 +47,7 @@ export class AuthService {
   async login(
     loginDto: LoginDto,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const { email, password } = loginDto;
+    const { email, password, deviceId } = loginDto;
     const user = await this.usersService.findByEmail(email);
     if (!user) {
       throw new UnauthorizedException('Wrong email or password');
@@ -63,41 +56,27 @@ export class AuthService {
       password,
       user.password,
     );
-
     if (!isPasswordMatch) {
       throw new UnauthorizedException('Wrong email or password');
     }
-    const deviceId = randomUUID();
-    const jti = randomUUID();
+    const rtJti = randomUUID();
+    const atJti = randomUUID();
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtTokenService.signAccessToken({ sub: user.id, deviceId }),
-      this.jwtTokenService.signRefreshToken({ sub: user.id, deviceId, jti }),
+      this.jwtTokenService.signAccessToken({
+        sub: user.id,
+        deviceId,
+        jti: atJti,
+      }),
+      this.jwtTokenService.signRefreshToken({
+        sub: user.id,
+        deviceId,
+        jti: rtJti,
+      }),
     ]);
-    const currentKey = `session:${deviceId}:current`;
-    const jtiKey = `session:${deviceId}`;
-    const ttlSec = this.configService.get<number | string>(
-      'REFRESH_TOKEN_MAX_AGE_MS',
-    );
-    if (!ttlSec) {
-      throw new InternalServerErrorException('TTL sec is invalid');
-    }
-    const pipe = this.redisService.pipeline();
-    pipe.set(currentKey, jti);
-    pipe.expire(currentKey, ttlSec);
-    pipe.hset(jtiKey, {
-      userId: user.id,
-      deviceId,
-      rotated: false,
-      createdAt: Date.now(),
-    });
-    pipe.expire(jtiKey, ttlSec);
 
-    await pipe.exec();
+    console.log(accessToken);
 
-    await this.redisService
-      .getClient()
-      .sadd(`user:${user.id}:devices`, deviceId);
-
+    await this.sessionService.createSession(rtJti, atJti, user.id, deviceId);
     return { accessToken, refreshToken };
   }
 }

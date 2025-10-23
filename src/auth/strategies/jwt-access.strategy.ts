@@ -1,5 +1,5 @@
+import { JwtTokenPayload } from '@/auth/interfaces/jwt-token-payload.interface';
 import { makeCookieExtractor } from '@/auth/utils/extractors';
-import { TokenPayload } from '@/shared/types/jwt.type';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
@@ -21,7 +21,7 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  validate(payload: TokenPayload): { userId: string; deviceId: string } {
+  validate(payload: JwtTokenPayload): { userId: string; deviceId: string } {
     return { userId: payload.sub, deviceId: payload.deviceId };
   }
 }

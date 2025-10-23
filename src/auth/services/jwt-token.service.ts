@@ -1,4 +1,4 @@
-import { TokenPayload } from '@/shared/types/jwt.type';
+import { JwtTokenPayload } from '@/auth/interfaces/jwt-token-payload.interface';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
@@ -10,14 +10,13 @@ export class JwtTokenService {
     private readonly configService: ConfigService,
   ) {}
   async signAccessToken(
-    payload: { sub: string; deviceId: string },
+    payload: { sub: string; deviceId: string; jti: string },
     options?: Pick<JwtSignOptions, 'expiresIn' | 'jwtid'>,
   ) {
     return this.jwtService.signAsync(payload, {
       secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
       expiresIn: this.configService.get('JWT_ACCESS_EXPIRES'),
       algorithm: 'HS256',
-      jwtid: crypto.randomUUID(),
       issuer: this.configService.get<string>('JWT_ISSUER'),
       audience: this.configService.get<string>('JWT_AUDIENCE'),
       ...options,
@@ -38,7 +37,7 @@ export class JwtTokenService {
     });
   }
 
-  async verifyAccessToken(token: string): Promise<TokenPayload> {
+  async verifyAccessToken(token: string): Promise<JwtTokenPayload> {
     return this.jwtService.verifyAsync(token, {
       secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
       issuer: this.configService.get('JWT_ISSUER'),
@@ -46,7 +45,7 @@ export class JwtTokenService {
     });
   }
 
-  async verifyRefreshToken(token: string): Promise<TokenPayload> {
+  async verifyRefreshToken(token: string): Promise<JwtTokenPayload> {
     return this.jwtService.verifyAsync(token, {
       secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
       issuer: this.configService.get('JWT_ISSUER'),
