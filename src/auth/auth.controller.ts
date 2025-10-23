@@ -45,6 +45,13 @@ export class AuthController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @ResponseMessage('Logout successfully')
+  @Post('logout')
+  logout(@Res({ passthrough: true }) res: Response) {
+    this.cookieAuthService.clearAuthCookies(res);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Get('me')
   me(@Req() req: Request) {
     return {

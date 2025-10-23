@@ -1,3 +1,4 @@
+import { SessionCreateParams } from '@/auth/interfaces/session.interface';
 import { RedisService } from '@/redis/redis.service';
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -40,12 +41,8 @@ export class SessionService {
    * @throws {InternalServerErrorException} When Redis operation fails
    */
 
-  async createSession(
-    rtJti: string,
-    atJti: string,
-    userId: string,
-    deviceId: string,
-  ) {
+  async createSession(params: SessionCreateParams) {
+    const { rtJti, atJti, deviceId, userId } = params;
     if (!rtJti || !atJti || !userId || !deviceId) {
       throw new InternalServerErrorException(
         'All session parameters are required',

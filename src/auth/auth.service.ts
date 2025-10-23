@@ -74,7 +74,12 @@ export class AuthService {
       }),
     ]);
 
-    await this.sessionService.createSession(rtJti, atJti, user.id, deviceId);
+    await this.sessionService.createSession({
+      rtJti,
+      atJti,
+      userId: user.id,
+      deviceId,
+    });
     return { accessToken, refreshToken };
   }
 }
