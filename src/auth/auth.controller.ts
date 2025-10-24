@@ -47,8 +47,11 @@ export class AuthController {
   @UseGuards(AuthGuard('jwt'))
   @ResponseMessage('Logout successfully')
   @Post('logout')
-  logout(@Res({ passthrough: true }) res: Response) {
+  logout(@Res({ passthrough: true }) res: Response, @Req() req: Request) {
+    const deviceId = req.user?.deviceId;
+
     this.cookieAuthService.clearAuthCookies(res);
+    return deviceId;
   }
 
   @UseGuards(AuthGuard('jwt'))

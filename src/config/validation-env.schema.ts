@@ -8,7 +8,7 @@ const Bool = z
 
 const IntMs = z
   .string()
-  .transform((s) => Number(s))
+  .transform((s) => Number.parseInt(s))
   .refine((n) => Number.isFinite(n) && n >= 0, 'Must be non-negative number')
   .or(z.number())
   .default(0);

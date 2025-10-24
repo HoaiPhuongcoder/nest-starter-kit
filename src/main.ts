@@ -36,18 +36,9 @@ async function bootstrap() {
   app.useGlobalInterceptors(new TransformInterceptor(reflector));
   app.enableShutdownHooks();
   const config = new DocumentBuilder()
-    .setTitle('Social Media')
+    .setTitle('Starter KIT PHUONGNH')
     .setDescription('starter-kit-nestjs')
     .setVersion('1.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        description: 'Nhập access token. KHÔNG cần gõ chữ "Bearer"',
-      },
-      'accessToken',
-    )
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('swagger', app, document);

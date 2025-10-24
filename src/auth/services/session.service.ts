@@ -1,6 +1,10 @@
 import { SessionCreateParams } from '@/auth/interfaces/session.interface';
 import { RedisService } from '@/redis/redis.service';
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -29,6 +33,26 @@ export class SessionService {
   private getUserDevicesKey(userId: string) {
     const userDevicesKey = `user:${userId}:devices`;
     return userDevicesKey;
+  }
+
+  async isDeviceExist(userId: string, deviceId: string) {
+    const userDevicesKey = this.getUserDevicesKey(userId);
+    return await this.redisService.sIsMember(userDevicesKey, deviceId);
+  }
+
+  async getCurrentJti(deviceId: string) {
+    const currentKey = this.getCurrentKey(deviceId);
+    return await this.redisService.get(currentKey);
+  }
+
+  async setCurrentJti(deviceId: string, jti: string, ttlSec: number) {
+    const currentKey = this.getCurrentKey(deviceId);
+    return await this.redisService.set(currentKey, jti, ttlSec);
+  }
+
+  async getMeta(deviceId: string, jti: string) {
+    const jtiKey = this.getJtiKey(deviceId, jti);
+    return await this.redisService.hGetAll(jtiKey);
   }
 
   // Example: Better method organization with documentation
@@ -71,6 +95,36 @@ export class SessionService {
         'Fail to create session in Redis',
         { cause: err },
       );
+    }
+  }
+
+  async validateDeviceSession(params: {
+    userId: string;
+    deviceId: string;
+    jti: string;
+  }): Promise<void> {
+    const { deviceId, jti, userId } = params;
+    const isExistDevice = await this.isDeviceExist(userId, deviceId);
+    if (!isExistDevice) {
+      throw new UnauthorizedException('Device not linked to user');
+    }
+
+    const currentJti = await this.getCurrentJti(deviceId);
+    if (!currentJti) {
+      throw new UnauthorizedException('Session not found');
+    }
+    if (currentJti !== jti) {
+      throw new UnauthorizedException(
+        'Refresh token is not current (possible reuse)',
+      );
+    }
+
+    const meta = await this.getMeta(deviceId, jti);
+    if (!meta || Object.keys(meta).length === 0) {
+      throw new UnauthorizedException('Refresh token metadata missing');
+    }
+    if (meta['rotated'] === 'true') {
+      throw new UnauthorizedException('Refresh token already rotated');
     }
   }
 }

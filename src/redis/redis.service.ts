@@ -39,6 +39,11 @@ export class RedisService {
     return (await this.redis.hgetall(key)) as T;
   }
 
+  async sIsMember(key: string, value: string): Promise<boolean> {
+    const result = await this.redis.sismember(key, value);
+    return result === 1;
+  }
+
   async expire(key: string, ttlSeconds: number) {
     return await this.redis.expire(key, ttlSeconds);
   }
