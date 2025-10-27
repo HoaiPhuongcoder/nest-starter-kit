@@ -7,6 +7,14 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+export interface SessionData {
+  userId: string;
+  deviceId: string;
+  rotated: boolean;
+  atJti: string;
+  createAt: number;
+}
+
 @Injectable()
 export class SessionService {
   private readonly REFRESH_TTL_SEC: number;
@@ -76,6 +84,11 @@ export class SessionService {
       const currentKey = this.getCurrentKey(deviceId);
       const jtiKey = this.getJtiKey(deviceId, rtJti);
       const userDevicesKey = this.getUserDevicesKey(userId);
+      const sessionData: Omit<SessionData, 'userId' | 'deviceID'> = {
+        rotated: false,
+        atJti,
+        createAt: Date.now(),
+      };
       const pipe = this.redisService.pipeline();
       pipe.set(currentKey, rtJti);
       pipe.expire(currentKey, this.REFRESH_TTL_SEC);
