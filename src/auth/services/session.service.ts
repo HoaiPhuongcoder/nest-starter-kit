@@ -12,7 +12,7 @@ export interface SessionData {
   deviceId: string;
   rotated: boolean;
   atJti: string;
-  createAt: number;
+  createdAt: number;
 }
 
 @Injectable()
@@ -80,35 +80,26 @@ export class SessionService {
         'All session parameters are required',
       );
     }
-    try {
-      const currentKey = this.getCurrentKey(deviceId);
-      const jtiKey = this.getJtiKey(deviceId, rtJti);
-      const userDevicesKey = this.getUserDevicesKey(userId);
-      const sessionData: Omit<SessionData, 'userId' | 'deviceID'> = {
-        rotated: false,
-        atJti,
-        createAt: Date.now(),
-      };
-      const pipe = this.redisService.pipeline();
-      pipe.set(currentKey, rtJti);
-      pipe.expire(currentKey, this.REFRESH_TTL_SEC);
-      pipe.hset(jtiKey, {
-        userId,
-        deviceId,
-        rotated: false,
-        atJti,
-        createdAt: Date.now(),
-      });
-      pipe.expire(jtiKey, this.REFRESH_TTL_SEC);
-
-      pipe.sadd(userDevicesKey, deviceId);
-      await pipe.exec();
-    } catch (err) {
-      throw new InternalServerErrorException(
-        'Fail to create session in Redis',
-        { cause: err },
-      );
-    }
+    const currentKey = this.getCurrentKey(deviceId);
+    const jtiKey = this.getJtiKey(deviceId, rtJti);
+    const userDevicesKey = this.getUserDevicesKey(userId);
+    const sessionData: SessionData = {
+      deviceId,
+      userId,
+      rotated: false,
+      atJti,
+      createdAt: Date.now(),
+    };
+    await this.redisService.executeOptimisticTransaction(
+      [currentKey, jtiKey],
+      (multi) => {
+        multi.set(currentKey, rtJti);
+        multi.expire(currentKey, this.REFRESH_TTL_SEC);
+        multi.hset(jtiKey, sessionData);
+        multi.expire(jtiKey, this.REFRESH_TTL_SEC);
+        multi.sadd(userDevicesKey, deviceId);
+      },
+    );
   }
 
   async validateDeviceSession(params: {

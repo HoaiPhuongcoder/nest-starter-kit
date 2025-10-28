@@ -52,6 +52,17 @@ export class RedisService {
     const result = await this.redis.sismember(key, value);
     return result === 1;
   }
+  async sAdd(key: string, value: string): Promise<number> {
+    return await this.redis.sadd(key, value);
+  }
+
+  async sRem(key: string, value: string): Promise<number> {
+    return await this.redis.srem(key, value);
+  }
+
+  async sMembers(key: string): Promise<string[]> {
+    return this.redis.smembers(key);
+  }
 
   async expire(key: string, ttlSeconds: number) {
     return await this.redis.expire(key, ttlSeconds);
