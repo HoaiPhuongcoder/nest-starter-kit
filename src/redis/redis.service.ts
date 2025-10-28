@@ -1,4 +1,7 @@
-import { TransactionConflictError } from '@/redis/redis.errors';
+import {
+  TransactionConflictError,
+  TransactionFailedError,
+} from '@/redis/redis.errors';
 import { TransactionFn } from '@/redis/redis.types';
 import {
   backoffDelayMs,
@@ -138,8 +141,7 @@ export class RedisService {
           await this.delay(backoffDelayMs(attempt));
           continue;
         }
-        const msg = err instanceof Error ? err.message : String(err);
-        throw new Error(`Redis optimistic transaction failed: ${msg}`);
+        throw new TransactionFailedError(err as Error);
       } finally {
         await this.redis.unwatch();
       }

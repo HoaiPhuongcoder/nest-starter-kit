@@ -58,9 +58,18 @@ export class SessionService {
     return await this.redisService.set(currentKey, jti, ttlSec);
   }
 
-  async getMeta(deviceId: string, jti: string) {
+  async getMeta(deviceId: string, jti: string): Promise<SessionData | null> {
     const jtiKey = this.getJtiKey(deviceId, jti);
-    return await this.redisService.hGetAll(jtiKey);
+    const meta = await this.redisService.hGetAll(jtiKey);
+    if (!meta || Object.keys(meta).length === 0) {
+      return null;
+    }
+
+    return {
+      ...meta,
+      rotated: meta.rotated === 'true',
+      createdAt: Number(meta.createdAt),
+    } as SessionData;
   }
 
   // Example: Better method organization with documentation
@@ -101,6 +110,27 @@ export class SessionService {
       },
     );
   }
+  async getSession(deviceId: string): Promise<SessionData | null> {
+    if (!deviceId.trim()) {
+      return null;
+    }
+    try {
+      const currentJti = await this.getCurrentJti(deviceId);
+      if (!currentJti) {
+        return null;
+      }
+      const meta = await this.getMeta(deviceId, currentJti);
+      if (!meta || Object.keys(meta).length === 0) {
+        return null;
+      }
+
+      return meta;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        `Failed to get session for ${deviceId}: ${(err as Error).message}`,
+      );
+    }
+  }
 
   async validateDeviceSession(params: {
     userId: string;
@@ -127,7 +157,7 @@ export class SessionService {
     if (!meta || Object.keys(meta).length === 0) {
       throw new UnauthorizedException('Refresh token metadata missing');
     }
-    if (meta['rotated'] === 'true') {
+    if (meta['rotated'] === true) {
       throw new UnauthorizedException('Refresh token already rotated');
     }
   }
