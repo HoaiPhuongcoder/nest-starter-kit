@@ -61,6 +61,14 @@ export class AuthService {
     }
     const rtJti = randomUUID();
     const atJti = randomUUID();
+
+    await this.sessionService.createSession({
+      rtJti,
+      atJti,
+      userId: user.id,
+      deviceId,
+    });
+
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtTokenService.signAccessToken({
         sub: user.id,
@@ -73,13 +81,10 @@ export class AuthService {
         jti: rtJti,
       }),
     ]);
-
-    await this.sessionService.createSession({
-      rtJti,
-      atJti,
-      userId: user.id,
-      deviceId,
-    });
     return { accessToken, refreshToken };
+  }
+
+  async logoutDevice(deviceId: string, userId: string) {
+    return this.sessionService.logoutDevice(deviceId, userId);
   }
 }

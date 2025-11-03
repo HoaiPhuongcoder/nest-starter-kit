@@ -7,6 +7,7 @@ import {
 import { CookieAuthService } from '@/auth/services/cookie-auth.service';
 import { ResponseMessage } from '@/utils/decorator/response-message.decorator';
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -47,11 +48,15 @@ export class AuthController {
   @UseGuards(AuthGuard('jwt'))
   @ResponseMessage('Logout successfully')
   @Post('logout')
-  logout(@Res({ passthrough: true }) res: Response, @Req() req: Request) {
+  async logout(@Res({ passthrough: true }) res: Response, @Req() req: Request) {
     const deviceId = req.user?.deviceId;
-
+    const userId = req.user?.deviceId;
+    if (!deviceId || !userId) {
+      throw new BadRequestException('Wrong Logout');
+    }
+    await this.authService.logoutDevice(deviceId, userId);
     this.cookieAuthService.clearAuthCookies(res);
-    return deviceId;
+    return 'Logout Success';
   }
 
   @UseGuards(AuthGuard('jwt'))
