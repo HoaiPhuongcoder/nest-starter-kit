@@ -50,13 +50,27 @@ export class AuthController {
   @Post('logout')
   async logout(@Res({ passthrough: true }) res: Response, @Req() req: Request) {
     const deviceId = req.user?.deviceId;
-    const userId = req.user?.deviceId;
+    const userId = req.user?.userId;
     if (!deviceId || !userId) {
       throw new BadRequestException('Wrong Logout');
     }
     await this.authService.logoutDevice(deviceId, userId);
     this.cookieAuthService.clearAuthCookies(res);
-    return 'Logout Success';
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @ResponseMessage('Logout successfully')
+  @Post('logout-all')
+  async logoutAll(
+    @Res({ passthrough: true }) res: Response,
+    @Req() req: Request,
+  ) {
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new BadRequestException('Wrong Logout');
+    }
+    await this.authService.logoutAllDevices(userId);
+    this.cookieAuthService.clearAuthCookies(res);
   }
 
   @UseGuards(AuthGuard('jwt'))

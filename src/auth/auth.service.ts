@@ -85,6 +85,10 @@ export class AuthService {
   }
 
   async logoutDevice(deviceId: string, userId: string) {
-    return this.sessionService.logoutDevice(deviceId, userId);
+    await this.sessionService.logoutDevice(deviceId, userId);
+  }
+
+  async logoutAllDevices(userId: string): Promise<void> {
+    await this.sessionService.logoutAllDevices(userId);
   }
 }

@@ -162,9 +162,7 @@ export class SessionService {
         (multi) => {
           multi.unlink(currentKey);
           multi.srem(userDevicesKey, deviceId);
-          for (const k of jtiKeys) {
-            multi.unlink(k);
-          }
+          multi.unlink(...jtiKeys);
           multi.unlink(jtisSetKey);
         },
       );
@@ -173,6 +171,57 @@ export class SessionService {
         `Failed to logout device ${deviceId}: ${(error as Error).message}`,
       );
     }
+  }
+
+  async logoutAllDevices(userId: string): Promise<void> {
+    if (!userId.trim()) {
+      throw new InternalServerErrorException(
+        'Device ID and User ID are required',
+      );
+    }
+    const userDevicesKey = this.getUserDevicesKey(userId);
+    const deviceIds = await this.redisService.sMembers(userDevicesKey);
+    if (!deviceIds || deviceIds.length === 0) {
+      return;
+    }
+    const currentKeys: string[] = [];
+    const jtisSetKeys: string[] = [];
+    const jtiKeysToDelete: string[] = [];
+
+    for (const deviceId of deviceIds) {
+      const currentKey = this.getCurrentKey(deviceId);
+      const jtisSetKey = this.getJtisSetKey(deviceId);
+
+      currentKeys.push(currentKey);
+      jtisSetKeys.push(jtisSetKey);
+    }
+
+    const BATCH = 100;
+    for (let index = 0; index < jtisSetKeys.length; index += BATCH) {
+      const slice = jtisSetKeys.slice(index, index + BATCH);
+      const lists = await Promise.all(
+        slice.map((key) => this.redisService.sMembers(key)),
+      );
+      lists.forEach((jtis, idx) => {
+        const deviceId = deviceIds[index + idx];
+        jtis.forEach((jti) =>
+          jtiKeysToDelete.push(this.getJtiKey(deviceId, jti)),
+        );
+      });
+    }
+    // This is all key to delete
+    const keysToDelete = [
+      ...currentKeys,
+      ...jtisSetKeys,
+      ...jtiKeysToDelete,
+      userDevicesKey,
+    ];
+    await this.redisService.executeOptimisticTransaction(
+      [userDevicesKey, ...currentKeys, ...jtisSetKeys],
+      (multi) => {
+        multi.unlink(...keysToDelete);
+      },
+    );
   }
 
   async getSession(deviceId: string): Promise<SessionData | null> {
