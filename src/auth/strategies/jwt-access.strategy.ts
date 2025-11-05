@@ -9,6 +9,7 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(private readonly configService: ConfigService) {
     const jwtOptions = ExtractJwt.fromExtractors([
       makeCookieExtractor('accessToken'),
+      ExtractJwt.fromAuthHeaderAsBearerToken(),
     ]);
     super({
       jwtFromRequest: jwtOptions,

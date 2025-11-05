@@ -17,6 +17,7 @@ export class JwtRefreshStrategy extends PassportStrategy(
   ) {
     const jwtOptions = ExtractJwt.fromExtractors([
       makeCookieExtractor('refreshToken'),
+      ExtractJwt.fromBodyField('refreshToken'),
     ]);
     super({
       jwtFromRequest: jwtOptions,
