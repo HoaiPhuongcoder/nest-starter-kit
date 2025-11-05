@@ -32,7 +32,7 @@ export class SessionService {
       throw new InternalServerErrorException('TTL MS is invalid');
     }
     this.REFRESH_TTL_SEC = Math.floor(rtTtlMs / 1000);
-    this.REFRESH_TTL_SEC = Math.floor(acTtlMs / 1000);
+    this.ACCESS_TTL_SEC = Math.floor(acTtlMs / 1000);
   }
 
   private getCurrentKey(deviceId: string) {
