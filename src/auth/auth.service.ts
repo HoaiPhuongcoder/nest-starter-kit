@@ -7,6 +7,8 @@ import { UsersService } from '@/users/users.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { User } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
+import { CookieAuthService } from '@/auth/services/cookie-auth.service';
+import { Response } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -15,6 +17,7 @@ export class AuthService {
     private readonly hashingService: HashingService,
     private readonly jwtTokenService: JwtTokenService,
     private readonly sessionService: SessionService,
+    private readonly cookieAuthService: CookieAuthService,
   ) {}
 
   /**
@@ -45,9 +48,9 @@ export class AuthService {
    */
 
   async login(
-    loginDto: LoginDto,
+    params: LoginDto & { res: Response },
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const { email, password, deviceId } = loginDto;
+    const { email, password, deviceId, res } = params;
     const user = await this.usersService.findByEmail(email);
     if (!user) {
       throw new UnauthorizedException('Wrong email or password');
@@ -81,14 +84,32 @@ export class AuthService {
         jti: rtJti,
       }),
     ]);
+
+    this.cookieAuthService.setAuthCookies(res, accessToken, refreshToken);
     return { accessToken, refreshToken };
   }
 
-  async logoutDevice(deviceId: string, userId: string) {
+  async logoutDevice({
+    deviceId,
+    res,
+    userId,
+  }: {
+    deviceId: string;
+    userId: string;
+    res: Response;
+  }) {
     await this.sessionService.logoutDevice(deviceId, userId);
+    this.cookieAuthService.clearAuthCookies(res);
   }
 
-  async logoutAllDevices(userId: string): Promise<void> {
+  async logoutAllDevices({
+    res,
+    userId,
+  }: {
+    userId: string;
+    res: Response;
+  }): Promise<void> {
     await this.sessionService.logoutAllDevices(userId);
+    this.cookieAuthService.clearAuthCookies(res);
   }
 }

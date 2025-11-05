@@ -39,9 +39,10 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
     @Body() loginDto: LoginDto,
   ) {
-    const { accessToken, refreshToken } =
-      await this.authService.login(loginDto);
-    this.cookieAuthService.setAuthCookies(res, accessToken, refreshToken);
+    const { accessToken, refreshToken } = await this.authService.login({
+      ...loginDto,
+      res,
+    });
     return new LoginResponseDto({ accessToken, refreshToken });
   }
 
@@ -54,8 +55,7 @@ export class AuthController {
     if (!deviceId || !userId) {
       throw new BadRequestException('Wrong Logout');
     }
-    await this.authService.logoutDevice(deviceId, userId);
-    this.cookieAuthService.clearAuthCookies(res);
+    await this.authService.logoutDevice({ deviceId, res, userId });
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -69,8 +69,7 @@ export class AuthController {
     if (!userId) {
       throw new BadRequestException('Wrong Logout');
     }
-    await this.authService.logoutAllDevices(userId);
-    this.cookieAuthService.clearAuthCookies(res);
+    await this.authService.logoutAllDevices({ res, userId });
   }
 
   @UseGuards(AuthGuard('jwt'))

@@ -224,6 +224,65 @@ export class SessionService {
     );
   }
 
+  async rotateSession(params: {
+    deviceId: string;
+    userId: string;
+    oldRtJti: string;
+    newRtJti: string;
+    newAtJti: string;
+  }) {
+    const { deviceId, userId, oldRtJti, newRtJti, newAtJti } = params;
+    if (!deviceId || !userId || !oldRtJti || !newRtJti || !newAtJti) {
+      throw new InternalServerErrorException(
+        'All rotation parameters are required',
+      );
+    }
+    await this.validateDeviceSession({ deviceId, userId, jti: oldRtJti });
+    const currentKey = this.getCurrentKey(deviceId);
+    const oldJtiKey = this.getJtiKey(deviceId, oldRtJti);
+    const newJtiKey = this.getJtiKey(deviceId, newRtJti);
+    const userDevicesKey = this.getUserDevicesKey(userId);
+    const jtisSetKey = this.getJtisSetKey(deviceId);
+
+    const oldSessionData = await this.getMeta(deviceId, oldRtJti);
+    if (!oldSessionData) {
+      throw new UnauthorizedException('Session data not found for rotation');
+    }
+
+    const newSessionData: SessionData = {
+      ...oldSessionData,
+      atJti: newAtJti,
+      rotated: false,
+      createdAt: Date.now(),
+    };
+    const REUSE_TTL_SEC = Math.min(this.REFRESH_TTL_SEC, 24 * 3600);
+    try {
+      await this.redisService.executeOptimisticTransaction(
+        [currentKey, oldJtiKey, newJtiKey, userDevicesKey, jtisSetKey],
+        (multi) => {
+          // Set Rotated for old key
+          multi.hset(oldJtiKey, 'rotated', 'true');
+          multi.hset(oldJtiKey, 'rotatedAt', Date.now().toString());
+          multi.expire(oldJtiKey, REUSE_TTL_SEC);
+          // Promote new JTI to current
+          multi.set(currentKey, newRtJti, 'EX', this.REFRESH_TTL_SEC);
+          // Write new JTI meta
+          multi.hset(newJtiKey, newSessionData);
+          multi.expire(newJtiKey, this.REFRESH_TTL_SEC);
+          // Track JTIs  device
+          multi.sadd(jtisSetKey, newRtJti);
+          multi.expire(jtisSetKey, this.REFRESH_TTL_SEC);
+          // Ensure membership
+          multi.sadd(userDevicesKey, deviceId);
+        },
+      );
+    } catch (error) {
+      throw new InternalServerErrorException(
+        `Failed to rotate session for device ${deviceId}: ${(error as Error).message}`,
+      );
+    }
+  }
+
   async getSession(deviceId: string): Promise<SessionData | null> {
     if (!deviceId.trim()) {
       return null;
@@ -250,29 +309,69 @@ export class SessionService {
     userId: string;
     deviceId: string;
     jti: string;
-  }): Promise<void> {
-    const { deviceId, jti, userId } = params;
-    const isExistDevice = await this.isDeviceExist(userId, deviceId);
-    if (!isExistDevice) {
-      throw new UnauthorizedException('Device not linked to user');
+  }): Promise<SessionData> {
+    let { userId, deviceId, jti } = params;
+    userId = userId?.trim();
+    deviceId = deviceId?.trim();
+    jti = jti?.trim();
+    if (!userId || !deviceId || !jti) {
+      throw new UnauthorizedException('Invalid session parameters');
     }
 
-    const currentJti = await this.getCurrentJti(deviceId);
-    if (!currentJti) {
-      throw new UnauthorizedException('Session not found');
+    const userDevicesKey = this.getUserDevicesKey(userId);
+    const currentKey = this.getCurrentKey(deviceId);
+    const jtiKey = this.getJtiKey(deviceId, jti);
+
+    // 1 round-trip: SISMEMBER + GET + HGETALL
+    const pipe = this.redisService.pipeline();
+    pipe.sismember(userDevicesKey, deviceId); // → 0/1
+    pipe.get(currentKey); // → string|null
+    pipe.hgetall(jtiKey);
+    const results = await pipe.exec();
+    if (!results) {
+      throw new UnauthorizedException('Redis pipeline failed');
     }
+
+    const unwrap = <T>(r: [Error | null, unknown], msg?: string): T => {
+      const [err, val] = r;
+      if (err) throw new UnauthorizedException(msg ?? err.message);
+      return val as T;
+    };
+
+    const isMemberRaw = unwrap<number>(results[0], 'Membership check failed');
+    const currentJti = unwrap<string | null>(results[1], 'Read current failed');
+    const metaRaw = unwrap<Record<string, string>>(
+      results[2],
+      'Read metadata failed',
+    );
+
+    const isMember = !!Number(isMemberRaw);
+    if (!isMember) throw new UnauthorizedException('Device not linked to user');
+    if (!currentJti) throw new UnauthorizedException('Session not found');
     if (currentJti !== jti) {
       throw new UnauthorizedException(
         'Refresh token is not current (possible reuse)',
       );
     }
-
-    const meta = await this.getMeta(deviceId, jti);
-    if (!meta || Object.keys(meta).length === 0) {
+    if (!metaRaw || Object.keys(metaRaw).length === 0) {
       throw new UnauthorizedException('Refresh token metadata missing');
     }
-    if (meta['rotated'] === true) {
+
+    const meta: SessionData = {
+      userId: metaRaw.userId,
+      deviceId: metaRaw.deviceId,
+      atJti: metaRaw.atJti,
+      rotated: metaRaw.rotated === 'true',
+      createdAt: Number(metaRaw.createdAt),
+    };
+
+    // Ràng buộc nhất quán + các cờ bổ sung
+    if (meta.userId !== userId || meta.deviceId !== deviceId) {
+      throw new UnauthorizedException('Session metadata mismatch');
+    }
+    if (meta.rotated) {
       throw new UnauthorizedException('Refresh token already rotated');
     }
+    return meta; // giúp bước rotate dùng luôn, không cần getMeta lần nữa
   }
 }
