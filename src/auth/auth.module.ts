@@ -7,6 +7,7 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtRefreshStrategy } from '@/auth/strategies/jwt-refresh.strategy';
 import { SessionService } from './services/session.service';
 import { CookieAuthService } from './services/cookie-auth.service';
+import { AccessBlacklistService } from './services/access-blacklist.service';
 
 @Module({
   imports: [UsersModule, PassportModule],
@@ -17,6 +18,7 @@ import { CookieAuthService } from './services/cookie-auth.service';
     JwtRefreshStrategy,
     SessionService,
     CookieAuthService,
+    AccessBlacklistService,
   ],
 })
 export class AuthModule {}
