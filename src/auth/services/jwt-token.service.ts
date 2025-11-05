@@ -37,6 +37,41 @@ export class JwtTokenService {
     });
   }
 
+  async signTokenPair(
+    payload: {
+      userId: string;
+      deviceId: string;
+      atJti: string;
+      rtJti: string;
+    },
+    options?: {
+      rtOptions?: Pick<JwtSignOptions, 'expiresIn' | 'jwtid'>;
+      atOptions?: Pick<JwtSignOptions, 'expiresIn' | 'jwtid'>;
+    },
+  ) {
+    const { userId, deviceId, atJti, rtJti } = payload;
+
+    const atOptions = options?.atOptions ?? {};
+    const rtOptions = options?.rtOptions ?? {};
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.signAccessToken({
+        sub: userId,
+        deviceId,
+        jti: atJti,
+        ...atOptions,
+      }),
+      this.signRefreshToken({
+        sub: userId,
+        deviceId,
+        jti: rtJti,
+        ...rtOptions,
+      }),
+    ]);
+
+    return { accessToken, refreshToken };
+  }
+
   async verifyAccessToken(token: string): Promise<JwtTokenPayload> {
     return this.jwtService.verifyAsync(token, {
       secret: this.configService.get<string>('JWT_ACCESS_SECRET'),

@@ -1,5 +1,6 @@
 import { AuthService } from '@/auth/auth.service';
 import { LoginDto, LoginResponseDto } from '@/auth/dtos/login.dto';
+import { RefreshResponseDto } from '@/auth/dtos/refresh.dto';
 import {
   RegisterUserDto,
   RegisterUserResponseDto,
@@ -17,6 +18,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { Throttle } from '@nestjs/throttler';
 import { type Response, type Request } from 'express';
 
 @Controller('auth')
@@ -70,6 +72,37 @@ export class AuthController {
       throw new BadRequestException('Wrong Logout');
     }
     await this.authService.logoutAllDevices({ res, userId });
+  }
+
+  @Throttle({
+    default: {
+      limit: 3,
+      ttl: 60000,
+    },
+  })
+  @UseGuards(AuthGuard('jwt-refresh'))
+  @ResponseMessage('refresh successfully')
+  @Post('refresh')
+  async refreshTokens(
+    @Res({ passthrough: true }) res: Response,
+    @Req() req: Request,
+  ) {
+    const deviceId = req.user?.deviceId;
+    const userId = req.user?.userId;
+    const oldRtJti = req.user?.jti;
+
+    if (!deviceId || !userId || !oldRtJti) {
+      throw new BadRequestException('Wrong refresh');
+    }
+    const { accessToken, refreshToken } =
+      await this.authService.rotateRefreshToken({
+        res,
+        deviceId,
+        userId,
+        oldRtJti,
+      });
+
+    return new RefreshResponseDto({ accessToken, refreshToken });
   }
 
   @UseGuards(AuthGuard('jwt'))

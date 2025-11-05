@@ -48,7 +48,12 @@ export class CookieAuthService {
    * @throws {Error} If tokens are invalid
    */
 
-  setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
+  setAuthCookies(params: {
+    res: Response;
+    accessToken: string;
+    refreshToken: string;
+  }) {
+    const { res, accessToken, refreshToken } = params;
     if (!accessToken || !refreshToken) {
       throw new Error('Both access and refresh tokens are required');
     }

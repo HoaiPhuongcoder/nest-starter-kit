@@ -1,5 +1,6 @@
 import { JwtTokenPayload } from '@/auth/interfaces/jwt-token-payload.interface';
 import { SessionService } from '@/auth/services/session.service';
+import { makeCookieExtractor } from '@/auth/utils/extractors';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
@@ -14,14 +15,16 @@ export class JwtRefreshStrategy extends PassportStrategy(
     private readonly configService: ConfigService,
     private readonly sessionService: SessionService,
   ) {
+    const jwtOptions = ExtractJwt.fromExtractors([
+      makeCookieExtractor('refreshToken'),
+    ]);
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: jwtOptions,
       secretOrKey: configService.getOrThrow('JWT_REFRESH_SECRET'),
       issuer: configService.get<string>('JWT_ISSUER'),
       audience: configService.get<string>('JWT_AUDIENCE'),
       ignoreExpiration: false,
       algorithms: ['HS256'],
-      passReqToCallback: true,
     });
   }
   async validate(payload: JwtTokenPayload): Promise<{
@@ -29,7 +32,8 @@ export class JwtRefreshStrategy extends PassportStrategy(
     deviceId: string;
     jti: string;
   }> {
-    const { sub: userId, jti, deviceId } = payload;
+    const { sub, jti, deviceId } = payload;
+    const userId = sub;
     await this.sessionService.validateDeviceSession({ deviceId, jti, userId });
     return { userId, deviceId, jti };
   }
