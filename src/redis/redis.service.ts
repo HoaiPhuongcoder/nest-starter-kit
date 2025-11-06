@@ -30,6 +30,10 @@ export class RedisService {
     return await this.redis.get(key);
   }
 
+  async mget(keys: string[]) {
+    return await this.redis.mget(keys);
+  }
+
   async del(key: string) {
     return this.redis.del(key);
   }
