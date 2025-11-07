@@ -1,12 +1,16 @@
 import { JwtTokenPayload } from '@/auth/interfaces/jwt-token-payload.interface';
+import { AccessBlacklistService } from '@/auth/services/access-blacklist.service';
 import { makeCookieExtractor } from '@/auth/utils/extractors';
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 @Injectable()
 export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt') {
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly accessBlacklistService: AccessBlacklistService,
+  ) {
     const jwtOptions = ExtractJwt.fromExtractors([
       makeCookieExtractor('accessToken'),
       ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -22,11 +26,11 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  validate(payload: JwtTokenPayload): {
-    userId: string;
-    deviceId: string;
-    jti: string;
-  } {
+  async validate(payload: JwtTokenPayload) {
+    const isRevoked = await this.accessBlacklistService.isRevoked(payload);
+    if (isRevoked) {
+      throw new UnauthorizedException('Access token revoked');
+    }
     return {
       userId: payload.sub,
       deviceId: payload.deviceId,

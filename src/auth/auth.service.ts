@@ -9,6 +9,7 @@ import { User } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { CookieAuthService } from '@/auth/services/cookie-auth.service';
 import { Response } from 'express';
+import { AccessBlacklistService } from '@/auth/services/access-blacklist.service';
 
 @Injectable()
 export class AuthService {
@@ -18,6 +19,7 @@ export class AuthService {
     private readonly jwtTokenService: JwtTokenService,
     private readonly sessionService: SessionService,
     private readonly cookieAuthService: CookieAuthService,
+    private readonly accessBlacklistService: AccessBlacklistService,
   ) {}
 
   /**
@@ -92,6 +94,7 @@ export class AuthService {
     res: Response;
   }) {
     const { deviceId, res, userId } = params;
+    await this.accessBlacklistService.bumpDeviceRevokedBefore(userId, deviceId);
     await this.sessionService.logoutDevice(deviceId, userId);
     this.cookieAuthService.clearAuthCookies(res);
   }
@@ -103,6 +106,7 @@ export class AuthService {
     userId: string;
     res: Response;
   }): Promise<void> {
+    await this.accessBlacklistService.bumpUserRevokedBefore(userId);
     await this.sessionService.logoutAllDevices(userId);
     this.cookieAuthService.clearAuthCookies(res);
   }
