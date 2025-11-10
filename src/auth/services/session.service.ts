@@ -2,6 +2,7 @@ import {
   SessionCreateParams,
   SessionMeta,
 } from '@/auth/interfaces/session.interface';
+import { AccessBlacklistService } from '@/auth/services/access-blacklist.service';
 import { RedisService } from '@/redis/redis.service';
 import {
   Injectable,
@@ -24,6 +25,7 @@ export class SessionService {
   private readonly ACCESS_TTL_SEC: number;
   constructor(
     private readonly redisService: RedisService,
+    private readonly accessBlacklistService: AccessBlacklistService,
     private readonly configService: ConfigService,
   ) {
     const rtTtlMs = configService.get<number>('REFRESH_TOKEN_MAX_AGE_MS');
@@ -305,6 +307,20 @@ export class SessionService {
     }
   }
 
+  private async handleRefreshReuse(params: {
+    userId: string;
+    deviceId: string;
+  }) {
+    const { deviceId, userId } = params;
+    if (!deviceId || !userId) {
+      throw new InternalServerErrorException('Invalid handle parameters');
+    }
+    await Promise.all([
+      this.accessBlacklistService.bumpDeviceRevokedBefore(userId, deviceId),
+      this.logoutDevice(deviceId, userId),
+    ]);
+  }
+
   async validateDeviceSession(params: {
     userId: string;
     deviceId: string;
@@ -349,6 +365,7 @@ export class SessionService {
     if (!isMember) throw new UnauthorizedException('Device not linked to user');
     if (!currentJti) throw new UnauthorizedException('Session not found');
     if (currentJti !== jti) {
+      await this.handleRefreshReuse({ deviceId, userId });
       throw new UnauthorizedException(
         'Refresh token is not current (possible reuse)',
       );
